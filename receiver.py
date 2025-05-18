@@ -1,4 +1,7 @@
 import cv2
+import numpy as np
+import socket
+import struct
 import sys
 import time
 
@@ -12,10 +15,7 @@ def frame_to_ansi_blocks(frame, width=80, height=None):
     aspect_ratio = h / w
 
     if height is None:
-        # Default: calculate height to preserve aspect ratio (each block = 2 vertical pixels)
         height = int(aspect_ratio * width)
-    print(
-        f"Aspect ratio: {aspect_ratio:.2f}, Width: {width}, Height: {height}")
     resized = cv2.resize(frame, (width, height))
 
     lines = []
@@ -31,37 +31,47 @@ def frame_to_ansi_blocks(frame, width=80, height=None):
     return "\n".join(lines)
 
 
+def recv_exact(sock, size):
+    buf = b""
+    while len(buf) < size:
+        chunk = sock.recv(size - len(buf))
+        if not chunk:
+            raise ConnectionError("Socket closed")
+        buf += chunk
+    return buf
+
+
 def main():
-    cap = cv2.VideoCapture(1)
-    if not cap.isOpened():
-        print("Camera error.")
-        sys.exit(1)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(("0.0.0.0", 9000))
+    server.listen(1)
 
-    print("\033[2J\033[?25l")  # Clear screen and hide cursor
-
-    prev_time = 0
-    target_fps = 15
+    print("Waiting for connection...")
+    conn, _ = server.accept()
+    print("\033[2J\033[?25l")  # Clear screen, hide cursor
 
     try:
         while True:
-            now = time.time()
-            if now - prev_time < 1.0 / target_fps:
-                time.sleep((1.0 / target_fps) - (now - prev_time))
-            prev_time = time.time()
+            # Read frame size
+            size_buf = recv_exact(conn, 4)
+            frame_size = struct.unpack(">I", size_buf)[0]
 
-            ret, frame = cap.read()
-            if not ret:
+            # Read full JPEG buffer
+            data = recv_exact(conn, frame_size)
+            np_arr = np.frombuffer(data, dtype=np.uint8)
+            frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+            if frame is None:
                 continue
 
-            frame = cv2.flip(frame, 1)
             output = frame_to_ansi_blocks(frame, width=80)
-
             sys.stdout.write("\033[H" + output)
             sys.stdout.flush()
     except KeyboardInterrupt:
         pass
     finally:
-        cap.release()
+        conn.close()
+        server.close()
         print("\033[0m\033[?25h")  # Reset terminal, show cursor
 
 
