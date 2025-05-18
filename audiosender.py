@@ -1,8 +1,11 @@
 # audio_client.py
 import socket
 import sounddevice as sd
+import sys
 
-HOST = 'localhost'  # Replace with the server's IP address
+target_address = sys.argv[1] if len(sys.argv) > 1 else '0.0.0.0'
+
+HOST = target_address  # Replace with the server's IP address
 PORT = 50007
 SAMPLERATE = 16000
 CHANNELS = 1

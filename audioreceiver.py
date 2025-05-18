@@ -2,8 +2,11 @@
 import socket
 import sounddevice as sd
 import numpy as np
+import sys
 
-HOST = 'localhost'
+target_address = sys.argv[1] if len(sys.argv) > 1 else '0.0.0.0'
+
+HOST = target_address
 PORT = 50007
 SAMPLERATE = 16000
 CHANNELS = 1
