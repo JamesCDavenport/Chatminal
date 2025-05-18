@@ -3,6 +3,8 @@ import socket
 import struct
 import time
 
+from messagesocket import MessageSocket
+
 
 def main():
     cap = cv2.VideoCapture(0)
@@ -13,7 +15,7 @@ def main():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("127.0.0.1", 9000))
-
+    msg_sock = MessageSocket(sock)
     try:
         while True:
             ret, frame = cap.read()
@@ -25,11 +27,9 @@ def main():
                 '.jpg', resized_frame)
             data = buf.tobytes()
 
-            # Send frame size first
-            sock.sendall(struct.pack(">I", len(data)))
-            sock.sendall(data)
+            msg_sock.send("frame", data)
 
-            time.sleep(1 / 15)  # Limit to ~15 FPS
+            time.sleep(1 / 20)  # Limit to ~15 FPS
     except KeyboardInterrupt:
         pass
     finally:
