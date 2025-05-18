@@ -5,6 +5,8 @@ import struct
 import sys
 import time
 
+from messagesocket import MessageSocket
+
 
 def bgr_to_ansi(b, g, r, is_bg=False):
     return f"\033[{48 if is_bg else 38};2;{r};{g};{b}m"
@@ -48,16 +50,15 @@ def main():
 
     print("Waiting for connection...")
     conn, _ = server.accept()
+    msg_sock = MessageSocket(conn)
     print("\033[2J\033[?25l")  # Clear screen, hide cursor
 
     try:
         while True:
             # Read frame size
-            size_buf = recv_exact(conn, 4)
-            frame_size = struct.unpack(">I", size_buf)[0]
-
-            # Read full JPEG buffer
-            data = recv_exact(conn, frame_size)
+            name, data = msg_sock.recv()
+            if name != "frame":
+                continue
             np_arr = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
