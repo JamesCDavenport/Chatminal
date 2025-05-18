@@ -12,7 +12,7 @@ def main():
         return
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("127.0.0.1", 9000))
+    sock.connect(("10.0.0.82", 9000))
 
     try:
         while True:
