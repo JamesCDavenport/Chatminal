@@ -2,9 +2,11 @@ import cv2
 import socket
 import struct
 import time
+import sys
 
 from messagesocket import MessageSocket
 
+target_address = sys.argv[1] if len(sys.argv) > 1 else '0.0.0.0'
 
 def main():
     cap = cv2.VideoCapture(0)
@@ -14,7 +16,7 @@ def main():
         return
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("10.0.0.82", 9000))
+    sock.connect((target_address, 9000))
     msg_sock = MessageSocket(sock)
     try:
         while True:

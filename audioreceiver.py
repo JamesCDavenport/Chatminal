@@ -4,9 +4,7 @@ import sounddevice as sd
 import numpy as np
 import sys
 
-target_address = sys.argv[1] if len(sys.argv) > 1 else '0.0.0.0'
-
-HOST = target_address
+HOST = '0.0.0.0'
 PORT = 50007
 SAMPLERATE = 16000
 CHANNELS = 1
