@@ -4,7 +4,7 @@ import socket
 import struct
 import sys
 import time
-
+import sounddevice as sd
 from messagesocket import MessageSocket
 
 
@@ -33,16 +33,6 @@ def frame_to_ansi_blocks(frame, width=80, height=None):
     return "\n".join(lines)
 
 
-def recv_exact(sock, size):
-    buf = b""
-    while len(buf) < size:
-        chunk = sock.recv(size - len(buf))
-        if not chunk:
-            raise ConnectionError("Socket closed")
-        buf += chunk
-    return buf
-
-
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(("0.0.0.0", 9000))
@@ -51,28 +41,31 @@ def main():
     print("Waiting for connection...")
     conn, _ = server.accept()
     msg_sock = MessageSocket(conn)
-    print("\033[2J\033[?25l")  # Clear screen, hide cursor
+
+    print("\033[2J\033[?25l")  # Clear screen and hide cursor
 
     try:
         while True:
-            # Read frame size
-            name, data = msg_sock.recv()
-            if name != "frame":
+            try:
+                name, payload = msg_sock.recv()
+            except:
                 continue
-            np_arr = np.frombuffer(data, dtype=np.uint8)
-            frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-            if frame is None:
-                continue
-
-            output = frame_to_ansi_blocks(frame, width=80)
-            sys.stdout.write("\033[H" + output)
-            sys.stdout.flush()
+            if name == "video":
+                np_arr = np.frombuffer(payload, dtype=np.uint8)
+                frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                if frame is not None:
+                    output = frame_to_ansi_blocks(frame, width=80)
+                    sys.stdout.write("\033[H" + output)
+                    sys.stdout.flush()
+            elif name == "caption":
+                caption = payload.decode("utf-8")
+                print(f"\033[0m\033[1;37m{caption}\033[0m", end="\r")
+    except (ConnectionError, Exception) as e:
+        print(f"Receiver error: {e}")
     except KeyboardInterrupt:
         pass
     finally:
         conn.close()
-        server.close()
         print("\033[0m\033[?25h")  # Reset terminal, show cursor
 
 
