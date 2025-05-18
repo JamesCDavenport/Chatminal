@@ -10,7 +10,7 @@ fi
 
 # run audio receiver and receiver with the target ip address (only display output for receiver)
 python3 audioreceiver.py &    # run in background, suppress output
-python3 receiver.py          # run in foreground, show output
+python3 receiver.py &         # run in foreground, show output
 
 # wait until enter is pressed to run 
 read -p "Press Enter to start sending..."
